@@ -138,3 +138,10 @@ def overlay_heatmap(image: Image.Image, cam: np.ndarray, alpha: float = 0.45):
     blended = np.clip(blended, 0, 255).astype(np.uint8)
 
     return Image.fromarray(blended)
+
+def resize_to_height(img, target_height=350):
+    """Resize a PIL image to a fixed height"""
+    w, h = img.size
+    scale = target_height / h
+    new_w = int(w * scale)
+    return img.resize((new_w, target_height))

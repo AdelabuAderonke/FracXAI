@@ -1,6 +1,6 @@
 import streamlit as st
 from PIL import Image
-from model_utils import load_model, generate_response, postprocess, compute_gradcam, overlay_heatmap
+from model_utils import load_model, generate_response, postprocess, compute_gradcam, overlay_heatmap, resize_to_height
 
 from config import (
     APP_TITLE, APP_SUBTITLE, RESEARCH_DISCLAIMER, SCOPE_DISCLAIMER,
@@ -88,7 +88,15 @@ with col1:
     )
     if uploaded_file is not None:
         image = Image.open(uploaded_file).convert("RGB")
-        st.image(image, use_container_width=True)
+        display_image = resize_to_height(image, target_height=350)
+        
+        img_col, gradcam_col = st.columns(2)
+
+        with img_col:
+            st.image(display_image, caption="Uploaded X-ray")
+
+        with gradcam_col:
+            st.info("Grad-CAM explanation will appear here after analysis.")
 
         if st.button("Run analysis"):
             
@@ -112,19 +120,22 @@ with col1:
                 with st.spinner("Computing explanation heatmap..."):
                     cam = compute_gradcam(model, processor, image, prompt, raw_text)
                     overlay = overlay_heatmap(image, cam)
-                st.image(overlay, use_container_width=True)
+                    display_overlay = resize_to_height(overlay, target_height=350)
+                    with gradcam_col:
+                        st.image(display_overlay, caption="Grad-CAM heatmap overlay")
                 st.caption("Warmer regions indicate areas that most influenced the model's generated diagnosis.")
             except Exception as e:
-                st.error(f"Explanation could not be generated: {e}")
+                with gradcam_col:
+                    st.error(f"Explanation could not be generated: {e}")
 
 with col2:
     st.markdown("""
     <div class="info-card">
         <p class="info-card-title">Findings</p>
-        <p class="info-card-text">Upload an image and run the analysis to see detected fractures and confidence scores.</p>
+        <p class="info-card-text">Upload an image and run the analysis to see classified fractures</p>
     </div>
     <div class="info-card">
         <p class="info-card-title">AI explanation (XAI)</p>
-        <p class="info-card-text">After analysis, an LLM-generated explanation will describe where the model looked and why it reached its conclusion.</p>
+        <p class="info-card-text">After analysis, an LLM-generated explanation will describe where the model looked to make its decision.</p>
     </div>
     """, unsafe_allow_html=True)
